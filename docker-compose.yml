@@ -1,0 +1,15 @@
+version: '3.4'
+
+services:
+  node-runner:
+    image: test:latest
+    env_file: .env
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 3
+    volumes:
+      - /etc/ssl/certs:/etc/ssl/certs
+    build:
+      context: ./node-runner
+      dockerfile: Dockerfile
