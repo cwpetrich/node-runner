@@ -3,7 +3,9 @@ version: '3.4'
 services:
   node-runner:
     image: test:latest
-    env_file: .env
+    env_file:
+      - .env
+      - .env.local
     restart: always
     deploy:
       mode: replicated
