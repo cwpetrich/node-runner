@@ -5,7 +5,6 @@ services:
     image: test:latest
     env_file:
       - .env
-      - .env.local
     restart: always
     deploy:
       mode: replicated
