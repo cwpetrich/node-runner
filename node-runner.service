@@ -1,0 +1,12 @@
+[Unit]
+Description=Node Runner
+After=network.target
+After=network-online.target
+
+[Service]
+ExecStart=<PATH>/run_nodes.sh
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=default.target
