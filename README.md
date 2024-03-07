@@ -4,6 +4,8 @@
 
 The purpose of this repository is to provide the means of running a node within docker.
 
+This readme was written primarily for Ubuntu.
+
 ## Prerequisites
 
 ### Docker
