@@ -28,19 +28,19 @@ Run `sudo apt-get install docker-compose`.
 
 ## Instructions
 
-Run the script manually the first time to make sure that the `.env.local` files is created and populated correctly.
+Run the script manually the first time to make sure that the `.env.local` file is created and populated correctly.
 
 Run `bash <path_to_repo>/run_nodes.sh`
 
-You will be prompted 3 different things:
+You will be prompted to enter 3 different values:
 
-* Node Name
-* Username
-* Password
+* `Node Name` - Any arbitrary name used to identify a node. This is combined with the current datetime so that if you have multiple nodes running they will each have a unique name.
+* `Username` - Email address associated with the nodes.
+* `Password` - Password for the brand associated with the nodes.
 
 After supplying these three things you will not be prompted for them again and each subsequent time will simply start up using the previously provided credentials and settings.
 
-Check that the nodes are running correctly.  See [Verify that the Nodes are Running Correctly](#verify-that-the-nodes-are-running-correctly).
+Check that the nodes are running correctly. See [Verify that the Nodes are Running Correctly](#verify-that-the-nodes-are-running-correctly).
 
 ## Auto start on reboot
 
@@ -68,4 +68,4 @@ docker-compose logs --tail=0 --follow
 
 Next log into your Nerd brand and check the active nodes count.
 
-Example: https://app.nerdunited.com/dashboard/nodes
+[Nerd United](https://app.nerdunited.com/dashboard/nodes)
