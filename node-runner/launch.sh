@@ -9,7 +9,7 @@ date_stamp=$(date +%s)
 download_url="https://${domain}/node-binaries/${brand}/${environment}/${brand}_linux-${architecture}?${date_stamp}"
 #wget $download_url --output-document "${node_dir}/wget_test/${brand}" --quiet
 #curl $download_url -o "${node_dir}/curl_test/${brand}"
-#chmod +x $node_exec
+chmod +x $node_exec
 
 $node_exec reset
 $node_exec config <<EOL
