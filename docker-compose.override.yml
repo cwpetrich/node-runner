@@ -1,8 +1,0 @@
-version: '3.4'
-services:
-  node-runner:
-    env_file:
-      - .env
-      - .env.local
-    deploy:
-      replicas: 3
