@@ -26,6 +26,22 @@ Then logout for the permissions to take effect.
 
 Run `sudo apt-get install docker-compose`.
 
+### example docker-compose.override.yml
+
+```yml
+version: '3.4'
+services:
+  node-runner:
+    env_file:
+      - .env
+      - .env.local
+    deploy:
+      replicas: 3
+    build:
+      args:
+        - BINARY_FILE=hyper-v2.6.1-b_linux-arm64
+```
+
 ## Instructions
 
 Run the script manually the first time to make sure that the `.env.local` file is created and populated correctly.
