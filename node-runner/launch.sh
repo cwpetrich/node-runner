@@ -4,7 +4,7 @@ domain=$NODE_DOMAIN
 environment=$NODE_ENVIRONMENT
 architecture=$NODE_ARCHITECTURE
 node_dir="/usr/local/bin"
-node_exec="$node_dir/hyper"
+node_exec="$node_dir/node_binary"
 date_stamp=$(date +%s)
 download_url="https://${domain}/node-binaries/${brand}/${environment}/${brand}_linux-${architecture}?${date_stamp}"
 #wget $download_url --output-document "${node_dir}/wget_test/${brand}" --quiet
