@@ -2,7 +2,6 @@ version: '3.4'
 
 services:
   node-runner:
-    image: test:latest
     env_file:
       - .env
     restart: always
@@ -14,3 +13,5 @@ services:
     build:
       context: ./node-runner
       dockerfile: Dockerfile
+      args:
+        - BINARY_FILE=hyper-v2.6.1-b_linux-arm64
