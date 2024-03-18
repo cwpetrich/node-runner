@@ -21,7 +21,7 @@ requiredStringInput() {
     echo "$result"
 }
 
-requiredPasswordInput() {
+requiredHiddenInput() {
     local message=$1
     local errorMessage=$2
     while true; do
@@ -53,13 +53,21 @@ requiredNumericInput() {
     echo "$result"
 }
 
-help () {
+install() {
+    (curl -fsSL https://get.docker.com -o get-docker.sh) &&
+        (sudo sh get-docker.sh) &&
+        (sudo usermod -aG docker $USER) &&
+        (sudo apt install docker-compose)
+}
+
+help() {
     if [ -z "$1" ]; then
         echo "nr - a bash script for managing nodes"
         echo
         echo "Usage: nr <command>"
         echo
         echo "Available commands:"
+        echo "  init    - Install the required dependencies, configure the node settings, and start the nodes"
         echo "  config  - Configure the node settings"
         echo "  start   - Start the nodes"
         echo "  stop    - Stop the nodes"
@@ -68,36 +76,45 @@ help () {
         echo "For more information on a specific command, use 'nr help <command>'"
     else
         case "$1" in
-            config)
-                echo "config - Configure the node settings"
-                echo "Usage: nr config"
-                echo "This command will prompt you for various settings and save them for future use."
-                ;;
-            start)
-                echo "start - Start the nodes"
-                echo "Usage: nr start"
-                echo "This command will start the nodes with the settings you've configured."
-                ;;
-            stop)
-                echo "stop - Stop the nodes"
-                echo "Usage: nr stop"
-                echo "This command will stop the nodes."
-                ;;
-            help)
-                echo "help - Display this help message"
-                echo "Usage: nr help [command]"
-                echo "Without any arguments, 'help' displays a list of available commands."
-                echo "With an argument, 'help' displays detailed information about that command."
-                ;;
-            *)
-                echo "Unknown command: $1"
-                echo "Use 'nr help' for a list of available commands"
-                ;;
+        init)
+            echo "init - Install the required dependencies, configure the node settings, and start the nodes"
+            echo "Usage: nr init"
+            echo "This command will install Docker and Docker Compose if they are not already installed, configure the node settings, and start the nodes."
+            ;;
+        config)
+            echo "config - Configure the node settings"
+            echo "Usage: nr config"
+            echo "This command will prompt you for various settings and save them for future use."
+            ;;
+        start)
+            echo "start - Start the nodes"
+            echo "Usage: nr start"
+            echo "This command will start the nodes with the settings you've configured."
+            ;;
+        stop)
+            echo "stop - Stop the nodes"
+            echo "Usage: nr stop"
+            echo "This command will stop the nodes."
+            ;;
+        help)
+            echo "help - Display this help message"
+            echo "Usage: nr help [command]"
+            echo "Without any arguments, 'help' displays a list of available commands."
+            echo "With an argument, 'help' displays detailed information about that command."
+            ;;
+        *)
+            echo "Unknown command: $1"
+            echo "Use 'nr help' for a list of available commands"
+            ;;
         esac
     fi
 }
 
-config () {
+init() {
+    install && config && start
+}
+
+config() {
     # Define the architectures for which the arm64 binary should be used
     arm64s=("arm64" "aarch64")
     # Define the architectures for which the amd64 binary should be used
@@ -127,7 +144,7 @@ config () {
     # Prompt the user for node name, username/email, and password, and update these values in .env.local
     node_name=$(requiredStringInput "Node Name: " "Node Name cannot be empty or whitespace. Please try again.")
     node_username=$(requiredStringInput "Username/Email: " "Username/Email cannot be empty or whitespace. Please try again.")
-    node_password=$(requiredPasswordInput "Password: " "Password cannot be empty or whitespace. Please try again.")
+    node_password=$(requiredHiddenInput "Password: " "Password cannot be empty or whitespace. Please try again.")
     echo
     sed -i "s/\(NODE_NAME=\).*/\1${node_name}/" $envLocalFile
     sed -i "s/\(NODE_USERNAME=\).*/\1${node_username}/" $envLocalFile
@@ -153,19 +170,19 @@ config () {
     echo "Choose a Brand: "
     select brand in "${brands[@]}"; do
         case $brand in
-            hyper ) break;;
-            * ) echo "Invalid option";;
+        hyper) break ;;
+        *) echo "Invalid option" ;;
         esac
     done
     sed -i "s/\(BINARY_FILE=\).*/\1$brand-v2.6.1-b_linux-$arch/" $composeOverrideFile
 }
 
-start () {
+start() {
     cd $BASEDIRECTORY
     docker-compose up -d --build
 }
 
-stop () {
+stop() {
     cd $BASEDIRECTORY
     docker-compose down
 }
@@ -174,19 +191,22 @@ command=$1
 shift
 
 case $command in
-  config)
-    config;
+init)
+    init
     ;;
-  start)
-    start;
+config)
+    config
     ;;
-  stop)
-    stop;
+start)
+    start
     ;;
-  help)
-    help;
+stop)
+    stop
     ;;
-  *)
+help)
+    help
+    ;;
+*)
     echo "Unknown command: $command"
     echo "Use 'nr help' for a list of available commands"
     ;;
