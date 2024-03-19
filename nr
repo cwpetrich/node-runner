@@ -53,6 +53,30 @@ requiredNumericInput() {
     echo "$result"
 }
 
+recommendedBinaryArch() {
+    # Define the architectures for which the arm64 binary should be used
+    arm64s=("arm64" "aarch64")
+    # Define the architectures for which the amd64 binary should be used
+    amd64s=("x86_64")
+    # Detect the architecture of the host machine
+    host_arch=$(uname -m)
+    # If the host machine's architecture is in the arm64s array, use the arm64 binary
+    for a in "${arm64s[@]}"; do
+        [ "$a" == "$host_arch" ] && arch="arm64" && break
+    done
+    # If the host machine's architecture is in the amd64s array and the arch variable is not set, use the amd64 binary
+    if [ -z "$arch" ]; then
+        for a in "${amd64s[@]}"; do
+            [ "$a" == "$host_arch" ] && arch="amd64" && break
+        done
+    fi
+    # If the arch variable is still not set, use the arm64 binary as a default
+    if [ -z "$arch" ]; then
+        arch="arm64"
+    fi
+    echo "$arch"
+}
+
 install() {
     (curl -fsSL https://get.docker.com -o get-docker.sh) &&
         (sudo sh get-docker.sh) &&
@@ -115,32 +139,14 @@ init() {
 }
 
 config() {
-    # Define the architectures for which the arm64 binary should be used
-    arm64s=("arm64" "aarch64")
-    # Define the architectures for which the amd64 binary should be used
-    amd64s=("x86_64")
-    # Detect the architecture of the host machine
-    host_arch=$(uname -m)
-    # If the host machine's architecture is in the arm64s array, use the arm64 binary
-    for a in "${arm64s[@]}"; do
-        [ "$a" == "$host_arch" ] && arch="arm64" && break
-    done
-    # If the host machine's architecture is in the amd64s array and the arch variable is not set, use the amd64 binary
-    if [ -z "$arch" ]; then
-        for a in "${amd64s[@]}"; do
-            [ "$a" == "$host_arch" ] && arch="amd64" && break
-        done
-    fi
-    # If the arch variable is still not set, use the arm64 binary as a default
-    if [ -z "$arch" ]; then
-        arch="arm64"
-    fi
+    arch=$(recommendedBinaryArch)
 
     # If .env.local does not exist, copy .env into .env.local
     envLocalFile=$BASEDIRECTORY/.env.local
     if ! [ -f $envLocalFile ]; then
         cp $BASEDIRECTORY/.env $BASEDIRECTORY/.env.local
     fi
+
     # Prompt the user for node name, username/email, and password, and update these values in .env.local
     node_name=$(requiredStringInput "Node Name: " "Node Name cannot be empty or whitespace. Please try again.")
     node_username=$(requiredStringInput "Username/Email: " "Username/Email cannot be empty or whitespace. Please try again.")
@@ -178,6 +184,12 @@ config() {
 }
 
 start() {
+    local composeOverrideFile=$BASEDIRECTORY/docker-compose.override.yml
+    local envLocalFile=$BASEDIRECTORY/.env.local
+    if ! [ -f $composeOverrideFile ] || ! [ -f $envLocalFile ]; then
+        echo "You must first configure your settings before startup. Use the \"nr config\" command to configure your settings"
+        exit 1
+    fi
     cd $BASEDIRECTORY
     docker-compose up -d --build
 }
@@ -187,12 +199,81 @@ stop() {
     docker-compose down
 }
 
+clean() {
+    rm $BASEDIRECTORY/docker-compose.override.yml
+    rm $BASEDIRECTORY/.env.local
+}
+
+check() {
+    if ! [ -f $BASEDIRECTORY/docker-compose.override.yml ]; then
+        echo "ERR: Missing the docker-compose.override.yml file."
+        echo "FIX: Run the \"nr config\" command"
+        exit 1
+    fi
+
+    if ! [ -f $BASEDIRECTORY/.env.local ]; then
+        echo "ERR: Missing the .env.local file."
+        echo "FIX: Run the \"nr config\" command"
+        exit 1
+    fi
+
+    if ! [ -f $BASEDIRECTORY/.env ]; then
+        echo "ERR: Missing the .env file."
+        echo "FIX: ONE of the following:"
+        echo " * Download the project again. AKA start over."
+        echo " * Use Git to revert to what is on origin/master."
+        echo " * Recreate or otherwise copy the .env file back into the base directory of this project: https://github.com/cwpetrich/node-runner/blob/master/.env"
+        exit 1
+    fi
+    
+    if ! [ -f $BASEDIRECTORY/docker-compose.yml ]; then
+        echo "ERR: Missing the docker-compose.yml file."
+        echo "FIX: ONE of the following:"
+        echo " * Download the project again. AKA start over."
+        echo " * Use Git to revert to what is on origin/master."
+        echo " * Recreate or otherwise copy the docker-compose.yml file back into the base directory of this project: https://github.com/cwpetrich/node-runner/blob/master/docker-compose.yml"
+        exit 1
+    fi
+
+    if ! [ -f $BASEDIRECTORY/node-runner/Dockerfile ]; then
+        echo "ERR: Missing the ./node-runner/Dockerfile file."
+        echo "FIX: ONE of the following:"
+        echo " * Download the project again. AKA start over."
+        echo " * Use Git to revert to what is on origin/master."
+        echo " * Recreate or otherwise copy the docker-compose.yml file back into the base directory of this project: https://github.com/cwpetrich/node-runner/blob/master/node-runner/Dockerfile"
+        exit 1
+    fi
+
+    if ! [ -f $BASEDIRECTORY/node-runner/launch.sh ]; then
+        echo "ERR: Missing the ./node-runner/launch.sh file."
+        echo "FIX: ONE of the following:"
+        echo " * Download the project again. AKA start over."
+        echo " * Use Git to revert to what is on origin/master."
+        echo " * Recreate or otherwise copy the docker-compose.yml file back into the base directory of this project: https://github.com/cwpetrich/node-runner/blob/master/node-runner/launch.sh"
+        exit 1
+    fi
+
+    # See if the file used for the binary in the override file matches what is suggested
+    local arch=$(recommendedBinaryArch)
+    if ! grep -Eq "$arch" $BASEDIRECTORY/docker-compose.override.yml; then
+        echo "ERR: You are using a version of the Node binary that isn't recommended for your machine's architecture"
+        echo "FIX: Run the \"nr config\" command"
+        exit 1
+    fi
+}
+
 command=$1
 shift
 
 case $command in
 init)
     init
+    ;;
+check)
+    check
+    ;;
+clean)
+    clean
     ;;
 config)
     config

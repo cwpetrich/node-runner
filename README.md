@@ -44,6 +44,18 @@ services:
 
 ## Instructions
 
+> [!NOTE]
+> Docker Compose provides a setting called `restart` that allows for automatic restart of containers that fail or exit for any reason including when the hosting machine reboots unexpectedly. This is set by default within this project's docker-compose.yml file. So you shouldn't need to do any form of custom auto/self start.
+
+### The `nr` Tool
+
+The `nr` tool provides a few easy to use commands to help with managing the running of nodes. You can use the tool by this format `nr <COMMAND>`
+* `init`    - This command will install Docker and Docker Compose if they are not already installed, configure the node settings, and start the nodes.
+* `config`  - This command will prompt you for various settings and save them for future use.
+* `start`   - Starts up the nodes
+* `stop`    - This one also starts up the nodes
+* `help`    - Prints out a helpfull message about the tool and it's possible commands.
+
 Run the script manually the first time to make sure that the `.env.local` file is created and populated correctly.
 
 Run `bash <path_to_repo>/run_nodes.sh`
