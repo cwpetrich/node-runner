@@ -2,8 +2,6 @@ version: '3.4'
 
 services:
   node-runner:
-    env_file:
-      - .env
     restart: always
     deploy:
       mode: replicated
@@ -14,4 +12,8 @@ services:
       context: ./node-runner
       dockerfile: Dockerfile
       args:
-        - BINARY_FILE=hyper-v2.6.1-b_linux-arm64
+        - BINARY_URL=https://download.nerdunited.com/node-binaries/v2.6.1-b/hyper-v2.6.1-b_linux-arm64
+        - NODE_BRAND=nerd
+        - NODE_NAME=NodeName
+        - NODE_USERNAME=Username
+        - NODE_PASSWORD=Password

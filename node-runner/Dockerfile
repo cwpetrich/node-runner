@@ -1,16 +1,24 @@
 FROM ubuntu:latest
 
-ARG BINARY_FILE=hyper-v2.6.1-b_linux-arm64
+ARG BINARY_URL
+ARG NODE_BRAND
+ARG NODE_NAME
+ARG NODE_USERNAME
+ARG NODE_PASSWORD
 
-RUN apt update && apt install -y dos2unix
+ENV BINARY=$NODE_BRAND
 
-COPY ./${BINARY_FILE}  /usr/local/bin/node_binary
-COPY ./launch.sh /root
+RUN apt update && apt install -y curl
 
-RUN dos2unix /root/launch.sh
+WORKDIR /usr/local/bin
 
-RUN chmod +x /usr/local/bin/node_binary
+RUN curl -f "$BINARY_URL?$(date +%s)" -o $BINARY
+RUN chmod +x $BINARY
+RUN $BINARY reset
+RUN $BINARY config <<EOL
+$NODE_USERNAME
+$NODE_PASSWORD
+"$NODE_NAME-$(date +%s)"
+EOL
 
-WORKDIR /root
-
-ENTRYPOINT ["bash", "launch.sh"]
+ENTRYPOINT /usr/local/bin/$BINARY
