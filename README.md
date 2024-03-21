@@ -27,9 +27,6 @@ Possible commands to run in conjunction with `nr`:
 
 ### Installing Prerequisites
 
-<<<<<<< Updated upstream
-Run the script manually the first time to make sure that the `.env.local` file is created and populated correctly.
-=======
 Use the `nr install` command to install Docker and Docker-Compose. Upon a successful install you will need to either logout, then back in, or reboot your machine in order to utilize Docker.
 
 ### Configuration
@@ -41,7 +38,6 @@ Use the `nr config` command to step through the prompts to create your node sett
 * `Password`        - Password for the brand associated with the nodes.
 * `Number of Nodes` - The number of nodes you want to run.
 * `Brand of Nodes`  - Select the brand of nodes you want to run.
->>>>>>> Stashed changes
 
 After supplying these values you will not need to do so again, so each subsequent startup will use the provided settings.
 
