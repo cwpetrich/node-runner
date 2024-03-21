@@ -105,7 +105,7 @@ install() {
         echo "Docker Compose is already installed"
     fi
 
-    if dockerInstalled; then
+    if $dockerInstalled; then
         echo "In order to utilize Docker a reboot is required"
         read -p "Reboot now? [Y/N]: " response
         if [[ $response =~ ^[Yy]$ ]]; then
@@ -144,7 +144,7 @@ help() {
             echo
             echo "Usage: nr clean"
             echo
-            echo "This command will remove the .env.local and docker-compose.override.yml files."
+            echo "This command will remove the docker-compose.override.yml file."
             ;;
         config)
             echo "config - Configure the node settings"
@@ -201,29 +201,22 @@ config() {
     # Define the local variables
     local brand version chain domain binary_url
 
-    # If .env.local does not exist, copy .env into .env.local
-    local envLocalFile=$BASEDIRECTORY/.env.local
-    if ! [ -f $envLocalFile ]; then
-        cp $BASEDIRECTORY/.env $BASEDIRECTORY/.env.local
-    fi
-    # Prompt the user for node name, username/email, and password, and update these values in .env.local
-    local node_name=$(requiredStringInput "Node Name: " "Node Name cannot be empty or whitespace. Please try again.")
-    local node_username=$(requiredStringInput "Username/Email: " "Username/Email cannot be empty or whitespace. Please try again.")
-    local node_password=$(requiredHiddenInput "Password: " "Password cannot be empty or whitespace. Please try again.")
-    echo
-    sed -i "s|\(NODE_NAME=\).*|\1${node_name}|" $envLocalFile
-    sed -i "s|\(NODE_USERNAME=\).*|\1${node_username}|" $envLocalFile
-    sed -i "s|\(NODE_PASSWORD=\).*|\1${node_password}|" $envLocalFile
-
     # If docker-compose.override.yml does not exist, copy docker-compose.yml into docker-compose.override.yml and add update these values in it
     local composeOverrideFile=$BASEDIRECTORY/docker-compose.override.yml
     if ! [ -f $composeOverrideFile ]; then
         cp $BASEDIRECTORY/docker-compose.yml $composeOverrideFile
     fi
 
-    if ! grep -Eq "\.env\.local" $composeOverrideFile; then
-        sed -i 's|\(.*\)\(- \.env$\)|\1\2\n\1- \.env\.local|' $composeOverrideFile
-    fi
+    # Prompt the user for node name, username/email, and password
+    local node_name=$(requiredStringInput "Node Name: " "Node Name cannot be empty or whitespace. Please try again.")
+    local node_username=$(requiredStringInput "Username/Email: " "Username/Email cannot be empty or whitespace. Please try again.")
+    local node_password=$(requiredHiddenInput "Password: " "Password cannot be empty or whitespace. Please try again.")
+    echo
+
+    # Update the docker-compose.override.yml file with the node name, username, and password
+    sed -i "s|\(NODE_NAME=\).*|\1${node_name}|" $composeOverrideFile
+    sed -i "s|\(NODE_PASSWORD=\).*|\1${node_password}|" $composeOverrideFile
+    sed -i "s|\(NODE_USERNAME=\).*|\1${node_username}|" $composeOverrideFile
 
     # Prompt the user for the number of nodes
     read -p "Number of Nodes: " node_count
@@ -248,7 +241,7 @@ config() {
         esac
     done
 
-    sed -i "s|\(NODE_BRAND=\).*|\1${brand}|" $envLocalFile
+    sed -i "s|\(NODE_BRAND=\).*|\1${brand}|" $composeOverrideFile
 
     # Prompt the user to choose a version
     echo "Choose a Version: "
@@ -258,8 +251,6 @@ config() {
         *) echo "Invalid option" ;;
         esac
     done
-
-    echo "TEST BEFORE"
 
     case $brand in
     blockade)
@@ -312,7 +303,7 @@ config() {
     esac
 
     binary_url=https://download.${domain}/node-binaries/${version}/${chain}-${version}_linux-${arch}
-    sed -i "s|\(BINARY_URL=\).*|\1${binary_url}|" $envLocalFile
+    sed -i "s|\(BINARY_URL=\).*|\1${binary_url}|" $composeOverrideFile
 }
 
 start() {
@@ -332,7 +323,6 @@ stop() {
 
 clean() {
     rm $BASEDIRECTORY/docker-compose.override.yml
-    rm $BASEDIRECTORY/.env.local
 }
 
 check() {
@@ -342,18 +332,15 @@ check() {
         exit 1
     fi
 
-    if ! [ -f $BASEDIRECTORY/.env.local ]; then
-        echo "ERR: Missing the .env.local file."
+    if ! [ -f $BASEDIRECTORY/.secrets/node_username ]; then
+        echo "ERR: Missing the .secrets/node_username file."
         echo "FIX: Run the \"nr config\" command"
         exit 1
     fi
 
-    if ! [ -f $BASEDIRECTORY/.env ]; then
-        echo "ERR: Missing the .env file."
-        echo "FIX: ONE of the following:"
-        echo " * Download the project again. AKA start over."
-        echo " * Use Git to revert to what is on origin/master."
-        echo " * Recreate or otherwise copy the .env file back into the base directory of this project: https://github.com/cwpetrich/node-runner/blob/master/.env"
+    if ! [ -f $BASEDIRECTORY/.secrets/node_password ]; then
+        echo "ERR: Missing the .secrets/node_password file."
+        echo "FIX: Run the \"nr config\" command"
         exit 1
     fi
 
@@ -375,20 +362,11 @@ check() {
         exit 1
     fi
 
-    if ! [ -f $BASEDIRECTORY/node-runner/launch.sh ]; then
-        echo "ERR: Missing the ./node-runner/launch.sh file."
-        echo "FIX: ONE of the following:"
-        echo " * Download the project again. AKA start over."
-        echo " * Use Git to revert to what is on origin/master."
-        echo " * Recreate or otherwise copy the docker-compose.yml file back into the base directory of this project: https://github.com/cwpetrich/node-runner/blob/master/node-runner/launch.sh"
-        exit 1
-    fi
-
-    # See if the architecture for the url used to download the binary in the .env.local file matches what is suggested
+    # See if the architecture for the url used to download the binary in the override file matches what is suggested
     local arch=$(recommendedBinaryArch)
-    if ! grep -Eq "$arch" $BASEDIRECTORY/.env.local; then
-        echo "WRN: The architecture for the binary URL in the .env.local file does not match the recommended architecture."
-        echo "CURRENT: $(grep -E "BINARY_URL=.*linux-" $BASEDIRECTORY/.env.local | sed -e 's/.*linux-//' -e 's/".*//')"
+    if ! grep -Eq "$arch" $BASEDIRECTORY/docker-compose.override.yml; then
+        echo "WRN: The architecture for the binary URL in the docker-compose.override.yml file does not match the recommended architecture."
+        echo "CURRENT: $(grep -E "BINARY_URL=.*linux-" $BASEDIRECTORY/docker-compose.override.yml | sed -e 's/.*linux-//' -e 's/".*//')"
         echo "RECOMMENDED: $arch"
         echo "FIX: Run the \"nr config\" command"
     fi

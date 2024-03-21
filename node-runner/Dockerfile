@@ -1,11 +1,24 @@
 FROM ubuntu:latest
 
-RUN apt update && apt install -y dos2unix
+ARG BINARY_URL
+ARG NODE_BRAND
+ARG NODE_NAME
+ARG NODE_USERNAME
+ARG NODE_PASSWORD
 
-COPY ./launch.sh /root
+ENV BINARY=$NODE_BRAND
 
-RUN dos2unix /root/launch.sh
+RUN apt update && apt install -y curl
 
-WORKDIR /root
+WORKDIR /usr/local/bin
 
-ENTRYPOINT ["bash", "launch.sh"]
+RUN curl -f "$BINARY_URL?$(date +%s)" -o $BINARY
+RUN chmod +x $BINARY
+RUN $BINARY reset
+RUN $BINARY config <<EOL
+$NODE_USERNAME
+$NODE_PASSWORD
+"$NODE_NAME-$(date +%s)"
+EOL
+
+ENTRYPOINT /usr/local/bin/$BINARY
