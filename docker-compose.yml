@@ -13,5 +13,3 @@ services:
     build:
       context: ./node-runner
       dockerfile: Dockerfile
-      args:
-        - BINARY_FILE=hyper-v2.6.1-b_linux-arm64
