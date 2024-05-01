@@ -12,8 +12,12 @@ services:
       context: ./node-runner
       dockerfile: Dockerfile
       args:
-        - BINARY_URL=https://download.nerdunited.com/node-binaries/v2.6.1-b/hyper-v2.6.1-b_linux-arm64
-        - NODE_BRAND=nerd
-        - NODE_NAME=NodeName
-        - NODE_USERNAME=Username
-        - NODE_PASSWORD=Password
+        - HOST_MACHINE_ARCH=architecture
+        - NODE_BINARY_URL=binaryurl
+        - NODE_BRAND=brand
+        - NODE_CHAIN=chain
+        - NODE_DOMAIN=domain
+        - NODE_NAME=nodename
+        - NODE_PASSWORD=pasword
+        - NODE_USERNAME=username
+        - NODE_VERSION=version
