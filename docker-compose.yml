@@ -9,7 +9,7 @@ services:
     volumes:
       - /etc/ssl/certs:/etc/ssl/certs
     build:
-      context: ./node-runner
+      context: ../../
       dockerfile: Dockerfile
       args:
         - HOST_MACHINE_ARCH=architecture
