@@ -331,12 +331,12 @@ config() {
     # Define the configFile variable as a local variable base on the brand selected
     compose=$BASEDIRECTORY/config/$brand/docker-compose.yml
 
-    # If /config/$brand/docker-compose.yml does not exist, copy /docker-compose.yml into the brand specific docker-compose.yml
+    # If /config/$brand/docker-compose.yml does not exist, copy /docker-compose.template.yml into the brand specific docker-compose.yml
     if ! [ -d $BASEDIRECTORY/config/$brand ]; then
         mkdir -p $BASEDIRECTORY/config/$brand
     fi
     if ! [ -f $compose ]; then
-        cp $BASEDIRECTORY/docker-compose.yml $compose
+        cp $BASEDIRECTORY/docker-compose.template.yml $compose
     fi
 
     # Store the brand, chain, domain, and arch in the configFile
@@ -453,21 +453,21 @@ check() {
             echo "FIX: Run the \"nr -c $brand\" command"
         fi
     else
-        if ! [ -f $BASEDIRECTORY/docker-compose.yml ]; then
-            echo "ERR: Missing the docker-compose.yml file."
+        if ! [ -f $BASEDIRECTORY/docker-compose.template.yml ]; then
+            echo "ERR: Missing the docker-compose.template.yml file."
             echo "FIX: ONE of the following:"
             echo " * Download the project again. AKA start over."
             echo " * Use Git to revert to what is on origin/master."
-            echo " * Recreate or otherwise copy the docker-compose.yml file back into the base directory of this project: https://github.com/cwpetrich/node-runner/blob/master/docker-compose.yml"
+            echo " * Recreate or otherwise copy the docker-compose.template.yml file back into the base directory of this project: https://github.com/cwpetrich/node-runner/blob/master/docker-compose.template.yml"
             exit 1
         fi
 
-        if ! [ -f $BASEDIRECTORY/node-runner/Dockerfile ]; then
-            echo "ERR: Missing the ./node-runner/Dockerfile file."
+        if ! [ -f $BASEDIRECTORY/Dockerfile ]; then
+            echo "ERR: Missing the ./Dockerfile file."
             echo "FIX: ONE of the following:"
             echo " * Download the project again. AKA start over."
             echo " * Use Git to revert to what is on origin/master."
-            echo " * Recreate or otherwise copy the docker-compose.yml file back into the base directory of this project: https://github.com/cwpetrich/node-runner/blob/master/node-runner/Dockerfile"
+            echo " * Recreate or otherwise copy the Dockerfile file back into the base directory of this project: https://github.com/cwpetrich/node-runner/blob/master/Dockerfile"
             exit 1
         fi
 
