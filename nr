@@ -270,7 +270,7 @@ help() {
             echo
             echo "Usage: nr -n | --clean [OPTIONAL: brand name]"
             echo
-            echo "This command will remove the docker-compose.override.yml file."
+            echo "This command will remove all docker-compose.yml files for each brand, or for the specific brand if specified."
             ;;
         -c | --config)
             echo "config - Configure the node settings"
@@ -319,7 +319,7 @@ help() {
 
 config() {
     # Define the local variables
-    local arch brand version chain domain binary_url override node_name username password replicas
+    local arch brand version chain domain binary_url compose node_name username password replicas
     # Define the arch variable as a local variable
     arch=$(recommendedBinaryArch)
 
@@ -329,59 +329,59 @@ config() {
     chain=$(getBrandChain $brand)
 
     # Define the configFile variable as a local variable base on the brand selected
-    override=$BASEDIRECTORY/config/$brand/docker-compose.override.yml
+    compose=$BASEDIRECTORY/config/$brand/docker-compose.yml
 
-    # If docker-compose.override.yml does not exist, copy docker-compose.yml into docker-compose.override.yml
+    # If /config/$brand/docker-compose.yml does not exist, copy /docker-compose.template.yml into the brand specific docker-compose.yml
     if ! [ -d $BASEDIRECTORY/config/$brand ]; then
         mkdir -p $BASEDIRECTORY/config/$brand
     fi
-    if ! [ -f $override ]; then
-        cp $BASEDIRECTORY/docker-compose.yml $override
+    if ! [ -f $compose ]; then
+        cp $BASEDIRECTORY/docker-compose.template.yml $compose
     fi
 
     # Store the brand, chain, domain, and arch in the configFile
-    sed -i "s|\(NODE_BRAND=\).*|\1${brand}|" $override
-    sed -i "s|\(NODE_CHAIN=\).*|\1${chain}|" $override
-    sed -i "s|\(NODE_DOMAIN=\).*|\1${domain}|" $override
-    sed -i "s|\(HOST_MACHINE_ARCH=\).*|\1${arch}|" $override
+    sed -i "s|node-runner:|${chain}-node:|" $compose
+    sed -i "s|\(NODE_BRAND=\).*|\1${brand}|" $compose
+    sed -i "s|\(NODE_CHAIN=\).*|\1${chain}|" $compose
+    sed -i "s|\(NODE_DOMAIN=\).*|\1${domain}|" $compose
+    sed -i "s|\(HOST_MACHINE_ARCH=\).*|\1${arch}|" $compose
 
     # Prompt the user for node name and store it in the configFile
     node_name=$(requiredStringInput "Node Name: " "Node Name cannot be empty or whitespace. Please try again.")
-    sed -i "s|\(NODE_NAME=\).*|\1${node_name}|" $override
+    sed -i "s|\(NODE_NAME=\).*|\1${node_name}|" $compose
 
     # Prompt the user for username and store it in the configFile
     username=$(requiredStringInput "Username/Email: " "Username/Email cannot be empty or whitespace. Please try again.")
-    sed -i "s|\(NODE_USERNAME=\).*|\1${username}|" $override
+    sed -i "s|\(NODE_USERNAME=\).*|\1${username}|" $compose
 
     # Prompt the user for password and store it in the configFile
     password=$(requiredHiddenInput "Password: " "Password cannot be empty or whitespace. Please try again.")
     # Add a newline after the hidden input to move the cursor to the next line
     echo
-    sed -i "s|\(NODE_PASSWORD=\).*|\1${password}|" $override
+    sed -i "s|\(NODE_PASSWORD=\).*|\1${password}|" $compose
 
     # Prompt the user for the number of nodes and store it in the configFile
     replicas=$(requiredNumericInput "Number of Nodes: " "Number of Nodes must be a number. Please try again.")
-    sed -i "s|\(replicas: \)[0-9]*|\1$replicas|" $override
+    sed -i "s|\(replicas: \)[0-9]*|\1$replicas|" $compose
 
     # Prompt the user to choose a version and store it in the configFile
     version=$(selectVersion)
-    sed -i "s|\(NODE_VERSION=\).*|\1${version}|" $override
+    sed -i "s|\(NODE_VERSION=\).*|\1${version}|" $compose
 
     # Use the domain, version, chain, and arch to create the binary_url and store it in the configFile
     binary_url=https://download.${domain}/node-binaries/${version}/${chain}-${version}_linux-${arch}
-    sed -i "s|\(NODE_BINARY_URL=\).*|\1${binary_url}|" $override
+    sed -i "s|\(NODE_BINARY_URL=\).*|\1${binary_url}|" $compose
 }
 
 start() {
     local brand="${1:-all}"
     if [ "$brand" == "all" ]; then
         for brand in "${NODE_BRANDS[@]}"; do
-            if [ -f $BASEDIRECTORY/config/$brand/docker-compose.override.yml ]; then
+            if [ -f $BASEDIRECTORY/config/$brand/docker-compose.yml ]; then
                 echo "Starting $brand nodes..."
                 check $brand &&
                     docker-compose \
-                        -f $BASEDIRECTORY/docker-compose.yml \
-                        -f $BASEDIRECTORY/config/$brand/docker-compose.override.yml \
+                        -f $BASEDIRECTORY/config/$brand/docker-compose.yml \
                         up -d --build
             else
                 echo "Skipping $brand nodes due to no configuration file."
@@ -391,8 +391,7 @@ start() {
         echo "Starting $brand nodes..."
         check $brand &&
             docker-compose \
-                -f $BASEDIRECTORY/docker-compose.yml \
-                -f $BASEDIRECTORY/config/$brand/docker-compose.override.yml \
+                -f $BASEDIRECTORY/config/$brand/docker-compose.yml \
                 up -d --build
     fi
 }
@@ -401,18 +400,16 @@ stop() {
     local brand="${1:-all}"
     if [ "$brand" == "all" ]; then
         for brand in "${NODE_BRANDS[@]}"; do
-            if [ -f $BASEDIRECTORY/config/$brand/docker-compose.override.yml ]; then
+            if [ -f $BASEDIRECTORY/config/$brand/docker-compose.yml ]; then
                 docker-compose \
-                    -f $BASEDIRECTORY/docker-compose.yml \
-                    -f $BASEDIRECTORY/config/$brand/docker-compose.override.yml \
+                    -f $BASEDIRECTORY/config/$brand/docker-compose.yml \
                     down
             fi
         done
     else
-        if [ -f $BASEDIRECTORY/config/$brand/docker-compose.override.yml ]; then
+        if [ -f $BASEDIRECTORY/config/$brand/docker-compose.yml ]; then
             docker-compose \
-                -f $BASEDIRECTORY/docker-compose.yml \
-                -f $BASEDIRECTORY/config/$brand/docker-compose.override.yml \
+                -f $BASEDIRECTORY/config/$brand/docker-compose.yml \
                 down
         fi
     fi
@@ -422,13 +419,13 @@ clean() {
     local brand="${1:-all}"
     if [ "$brand" == "all" ]; then
         for brand in "${NODE_BRANDS[@]}"; do
-            if [ -f $BASEDIRECTORY/config/$brand/docker-compose.override.yml ]; then
-                rm $BASEDIRECTORY/config/$brand/docker-compose.override.yml
+            if [ -f $BASEDIRECTORY/config/$brand/docker-compose.yml ]; then
+                rm $BASEDIRECTORY/config/$brand/docker-compose.yml
             fi
         done
     else
-        if [ -f $BASEDIRECTORY/config/$brand/docker-compose.override.yml ]; then
-            rm $BASEDIRECTORY/config/$brand/docker-compose.override.yml
+        if [ -f $BASEDIRECTORY/config/$brand/docker-compose.yml ]; then
+            rm $BASEDIRECTORY/config/$brand/docker-compose.yml
         fi
     fi
 }
@@ -442,35 +439,35 @@ check() {
             exit 1
         fi
 
-        if ! [ -f $BASEDIRECTORY/config/$brand/docker-compose.override.yml ]; then
-            echo "ERR: Missing the docker-compose.override.yml file for $brand."
+        if ! [ -f $BASEDIRECTORY/config/$brand/docker-compose.yml ]; then
+            echo "ERR: Missing the docker-compose.yml file for $brand."
             echo "FIX: Run the \"nr -c $brand\" command"
         fi
 
-        # See if the architecture for the url used to download the binary in the override file matches what is suggested
+        # See if the architecture for the url used to download the binary in the compose file matches what is suggested
         local arch=$(recommendedBinaryArch)
-        if ! grep -Eq "$arch" $BASEDIRECTORY/config/$brand/docker-compose.override.yml; then
-            echo "WRN: The architecture for the binary URL in the docker-compose.override.yml file for $brand does not match the recommended architecture."
-            echo "CURRENT: $(grep -E "NODE_BINARY_URL=.*linux-" $BASEDIRECTORY/config/$brand/docker-compose.override.yml | sed -e 's/.*linux-//' -e 's/".*//')"
+        if ! grep -Eq "$arch" $BASEDIRECTORY/config/$brand/docker-compose.yml; then
+            echo "WRN: The architecture for the binary URL in the docker-compose.yml file for $brand does not match the recommended architecture."
+            echo "CURRENT: $(grep -E "NODE_BINARY_URL=.*linux-" $BASEDIRECTORY/config/$brand/docker-compose.yml | sed -e 's/.*linux-//' -e 's/".*//')"
             echo "RECOMMENDED: $arch"
             echo "FIX: Run the \"nr -c $brand\" command"
         fi
     else
-        if ! [ -f $BASEDIRECTORY/docker-compose.yml ]; then
-            echo "ERR: Missing the docker-compose.yml file."
+        if ! [ -f $BASEDIRECTORY/docker-compose.template.yml ]; then
+            echo "ERR: Missing the docker-compose.template.yml file."
             echo "FIX: ONE of the following:"
             echo " * Download the project again. AKA start over."
             echo " * Use Git to revert to what is on origin/master."
-            echo " * Recreate or otherwise copy the docker-compose.yml file back into the base directory of this project: https://github.com/cwpetrich/node-runner/blob/master/docker-compose.yml"
+            echo " * Recreate or otherwise copy the docker-compose.template.yml file back into the base directory of this project: https://github.com/cwpetrich/node-runner/blob/master/docker-compose.template.yml"
             exit 1
         fi
 
-        if ! [ -f $BASEDIRECTORY/node-runner/Dockerfile ]; then
-            echo "ERR: Missing the ./node-runner/Dockerfile file."
+        if ! [ -f $BASEDIRECTORY/Dockerfile ]; then
+            echo "ERR: Missing the ./Dockerfile file."
             echo "FIX: ONE of the following:"
             echo " * Download the project again. AKA start over."
             echo " * Use Git to revert to what is on origin/master."
-            echo " * Recreate or otherwise copy the docker-compose.yml file back into the base directory of this project: https://github.com/cwpetrich/node-runner/blob/master/node-runner/Dockerfile"
+            echo " * Recreate or otherwise copy the Dockerfile file back into the base directory of this project: https://github.com/cwpetrich/node-runner/blob/master/Dockerfile"
             exit 1
         fi
 
